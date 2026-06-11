@@ -13,6 +13,11 @@ export interface Mentor {
   avatar: string;
   tags: string[];
   expertiseAreas: string[];
+  /** True when the mentor has submitted (and passed) the verification form. */
+  verified: boolean;
+  yearsOfExperience?: number;
+  sessionLanguage?: "english" | "urdu" | "both";
+  portfolioUrl?: string;
 }
 
 export interface Session {
