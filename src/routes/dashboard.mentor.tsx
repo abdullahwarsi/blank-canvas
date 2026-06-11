@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
+  BadgeCheck,
   CalendarClock,
   CalendarDays,
   Check,
@@ -8,6 +9,7 @@ import {
   DollarSign,
   Lock,
   Plus,
+  ShieldCheck,
   Trash2,
   User,
   X,
