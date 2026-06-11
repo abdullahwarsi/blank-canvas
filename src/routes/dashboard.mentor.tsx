@@ -112,6 +112,7 @@ function MentorDashboard() {
           <TabsTrigger value="earnings">Earnings</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="availability">Availability</TabsTrigger>
+          <TabsTrigger value="verification">Verification</TabsTrigger>
         </TabsList>
 
         <TabsContent value="schedule" className="mt-6">
