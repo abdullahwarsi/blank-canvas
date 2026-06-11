@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -11,6 +12,12 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer, MinimalFooter } from "@/components/layout/Footer";
+import { AIFloatingWidget } from "@/components/layout/AIFloatingWidget";
+import { WelcomeModal } from "@/components/layout/WelcomeModal";
 
 function NotFoundComponent() {
   return (
@@ -77,14 +84,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "GuideMe — Smart Mentorship Marketplace" },
+      { name: "description", content: "Find expert mentors and counselors. Book sessions, learn from the best, and grow with AI-guided support." },
+      { name: "author", content: "GuideMe" },
+      { property: "og:title", content: "GuideMe — Smart Mentorship Marketplace" },
+      { property: "og:description", content: "Find expert mentors and counselors. Book sessions, learn from the best, and grow with AI-guided support." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -115,11 +121,24 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isHome = pathname === "/";
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <ThemeProvider>
+        <AuthProvider>
+          <div className="flex min-h-screen flex-col bg-background">
+            <Navbar />
+            <main className="flex-1">
+              <Outlet />
+            </main>
+            {isHome ? <Footer /> : <MinimalFooter />}
+            <AIFloatingWidget />
+            <WelcomeModal />
+          </div>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
