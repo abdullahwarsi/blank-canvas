@@ -178,7 +178,12 @@ function MentorsPage() {
                         className="h-12 w-12 rounded-full border bg-muted"
                       />
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate font-semibold">{m.name}</h3>
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="truncate font-semibold">{m.name}</h3>
+                          {m.verified && (
+                            <BadgeCheck className="h-4 w-4 shrink-0 text-primary" aria-label="Verified mentor" />
+                          )}
+                        </div>
                         <p className="truncate text-xs text-muted-foreground">{m.title}</p>
                       </div>
                       <div className="flex items-center gap-1 text-xs">
