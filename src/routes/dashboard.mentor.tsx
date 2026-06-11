@@ -98,7 +98,129 @@ function MentorDashboard() {
             </div>
           </Card>
         </TabsContent>
+
+        <TabsContent value="pricing" className="mt-6">
+          <PricingCard />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function PricingCard() {
+  const [hourlyRate, setHourlyRate] = useState(75);
+  const [thirtyMinRate, setThirtyMinRate] = useState(40);
+  const [packageRate, setPackageRate] = useState(280);
+  const [currency, setCurrency] = useState("USD");
+
+  return (
+    <Card className="p-6">
+      <div className="mb-2 flex items-center gap-2">
+        <DollarSign className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">Mentorship pricing</h2>
+      </div>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Set the price mentees pay for your time. Adjust the slider or type a value.
+      </p>
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Currency</Label>
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="PKR">PKR (₨)</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-8">
+        <PriceRow
+          label="60-minute session"
+          description="Standard mentorship hour."
+          value={hourlyRate}
+          onChange={setHourlyRate}
+          max={500}
+          currency={currency}
+        />
+        <PriceRow
+          label="30-minute session"
+          description="Quick consult or follow-up."
+          value={thirtyMinRate}
+          onChange={setThirtyMinRate}
+          max={300}
+          currency={currency}
+        />
+        <PriceRow
+          label="4-session package"
+          description="Discounted bundle for committed mentees."
+          value={packageRate}
+          onChange={setPackageRate}
+          max={2000}
+          currency={currency}
+        />
+      </div>
+
+      <div className="mt-8 flex justify-end">
+        <Button
+          className="bg-gradient-primary text-primary-foreground hover:opacity-90"
+          onClick={() => toast.success("Pricing updated.")}
+        >
+          Save pricing
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function PriceRow({
+  label,
+  description,
+  value,
+  onChange,
+  max,
+  currency,
+}: {
+  label: string;
+  description: string;
+  value: number;
+  onChange: (n: number) => void;
+  max: number;
+  currency: string;
+}) {
+  const symbol =
+    currency === "USD" ? "$" : currency === "EUR" ? "€" : currency === "GBP" ? "£" : "₨";
+  return (
+    <div className="space-y-3 rounded-lg border p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium">{label}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-sm text-muted-foreground">{symbol}</span>
+          <Input
+            type="number"
+            min={0}
+            max={max}
+            value={value}
+            onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
+            className="h-9 w-24"
+          />
+        </div>
+      </div>
+      <Slider
+        value={[value]}
+        min={0}
+        max={max}
+        step={5}
+        onValueChange={(v) => onChange(v[0])}
+      />
     </div>
   );
 }
