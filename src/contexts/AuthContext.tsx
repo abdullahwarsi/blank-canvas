@@ -7,6 +7,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  avatar?: string;
 }
 
 interface AuthContextValue {
@@ -14,6 +15,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (user: AuthUser) => void;
   logout: () => void;
+  updateAvatar: (avatar: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -28,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login: setUser,
         logout: () => setUser(null),
+        updateAvatar: (avatar) =>
+          setUser((u) => (u ? { ...u, avatar } : u)),
       }}
     >
       {children}
