@@ -172,6 +172,10 @@ function MentorDashboard() {
         <TabsContent value="availability" className="mt-6">
           <AvailabilityCard />
         </TabsContent>
+
+        <TabsContent value="verification" className="mt-6">
+          <VerificationCard />
+        </TabsContent>
       </Tabs>
 
       <RescheduleDialog
