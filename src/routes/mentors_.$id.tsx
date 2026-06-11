@@ -63,7 +63,11 @@ function MentorProfilePage() {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold tracking-tight">{mentor.name}</h1>
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+                {mentor.verified && (
+                  <Badge className="gap-1 bg-gradient-primary text-primary-foreground">
+                    <CheckCircle2 className="h-3 w-3" /> Verified
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground">{mentor.title}</p>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
