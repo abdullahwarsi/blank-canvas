@@ -662,3 +662,169 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub: st
     </Card>
   );
 }
+
+type VerificationStatus = "unsubmitted" | "pending" | "verified" | "rejected";
+
+function VerificationCard() {
+  const { user } = useAuth();
+  const storageKey = user?.email
+    ? `guideme:mentor-verification:${user.email}`
+    : "guideme:mentor-verification:anon";
+
+  const [status, setStatus] = useState<VerificationStatus>("unsubmitted");
+  const [qualification, setQualification] = useState("");
+  const [years, setYears] = useState(1);
+  const [institution, setInstitution] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [cvUrl, setCvUrl] = useState("");
+  const [certificateUrl, setCertificateUrl] = useState("");
+  const [portfolioUrl, setPortfolioUrl] = useState("");
+  const [language, setLanguage] = useState<"english" | "urdu" | "both">("english");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return;
+    try {
+      const v = JSON.parse(raw);
+      setStatus(v.status ?? "pending");
+      setQualification(v.qualification ?? "");
+      setYears(v.years ?? 1);
+      setInstitution(v.institution ?? "");
+      setLinkedin(v.linkedin ?? "");
+      setCvUrl(v.cvUrl ?? "");
+      setCertificateUrl(v.certificateUrl ?? "");
+      setPortfolioUrl(v.portfolioUrl ?? "");
+      setLanguage(v.language ?? "english");
+    } catch {
+      // ignore
+    }
+  }, [storageKey]);
+
+  const submit = () => {
+    if (!qualification.trim() || !institution.trim()) {
+      toast.error("Please fill in qualification and institution.");
+      return;
+    }
+    const payload = {
+      status: "verified" as const,
+      qualification,
+      years,
+      institution,
+      linkedin,
+      cvUrl,
+      certificateUrl,
+      portfolioUrl,
+      language,
+    };
+    window.localStorage.setItem(storageKey, JSON.stringify(payload));
+    setStatus("verified");
+    toast.success("Verification submitted. You'll now appear as a Verified mentor.");
+  };
+
+  return (
+    <Card className="p-6">
+      <div className="mb-2 flex items-center gap-2">
+        <ShieldCheck className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">Mentor verification</h2>
+        {status === "verified" && (
+          <Badge className="ml-2 gap-1 bg-gradient-primary text-primary-foreground">
+            <BadgeCheck className="h-3 w-3" /> Verified
+          </Badge>
+        )}
+        {status === "pending" && (
+          <Badge variant="secondary" className="ml-2">Pending review</Badge>
+        )}
+      </div>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Submit your credentials to earn a Verified badge on your public profile. Mentees
+        prefer booking verified mentors.
+      </p>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Highest qualification *</Label>
+          <Input
+            placeholder="e.g. MS Computer Science"
+            value={qualification}
+            onChange={(e) => setQualification(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Years of experience</Label>
+          <Input
+            type="number"
+            min={0}
+            max={60}
+            value={years}
+            onChange={(e) => setYears(Math.max(0, Number(e.target.value) || 0))}
+          />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label>Institution name *</Label>
+          <Input
+            placeholder="e.g. University of the Punjab"
+            value={institution}
+            onChange={(e) => setInstitution(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>LinkedIn URL</Label>
+          <Input
+            placeholder="https://linkedin.com/in/..."
+            value={linkedin}
+            onChange={(e) => setLinkedin(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Portfolio URL</Label>
+          <Input
+            placeholder="https://..."
+            value={portfolioUrl}
+            onChange={(e) => setPortfolioUrl(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>CV link</Label>
+          <Input
+            placeholder="Link to your CV (PDF)"
+            value={cvUrl}
+            onChange={(e) => setCvUrl(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Certificate link</Label>
+          <Input
+            placeholder="Link to a relevant certificate"
+            value={certificateUrl}
+            onChange={(e) => setCertificateUrl(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Session language</Label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as "english" | "urdu" | "both")}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="english">English</option>
+            <option value="urdu">Urdu</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-8 flex items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          * Required. Your Verified badge appears on your profile once submitted.
+        </p>
+        <Button
+          className="bg-gradient-primary text-primary-foreground hover:opacity-90"
+          onClick={submit}
+        >
+          {status === "verified" ? "Update verification" : "Submit for verification"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
