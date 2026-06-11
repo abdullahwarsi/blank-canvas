@@ -1,9 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { CalendarClock, Check, Clock, Lock, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarClock, Check, Clock, DollarSign, Lock, User, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   MOCK_MENTOR_SCHEDULE,
