@@ -1,12 +1,31 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CalendarClock, Check, Clock, DollarSign, Lock, User, X } from "lucide-react";
+import {
+  CalendarClock,
+  CalendarDays,
+  Check,
+  Clock,
+  DollarSign,
+  Lock,
+  Plus,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -22,15 +41,47 @@ export const Route = createFileRoute("/dashboard/mentor")({
   component: MentorDashboard,
 });
 
+type RequestStatus = "pending" | "accepted" | "declined";
+
 function MentorDashboard() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
     if (!isAuthenticated) navigate({ to: "/login" });
   }, [isAuthenticated, navigate]);
+
+  const [schedule, setSchedule] = useState<Session[]>(MOCK_MENTOR_SCHEDULE);
+  const [requests, setRequests] = useState<Session[]>(MOCK_MENTOR_REQUESTS);
+  const [requestStatus, setRequestStatus] = useState<Record<string, RequestStatus>>(
+    Object.fromEntries(MOCK_MENTOR_REQUESTS.map((r) => [r.id, "pending"])),
+  );
+  const [rescheduling, setRescheduling] = useState<Session | null>(null);
+
   if (!isAuthenticated) return null;
 
-  const earningsThisMonth = MOCK_MENTOR_SCHEDULE.reduce((sum, s) => sum + s.price, 0) + 320;
+  const earningsThisMonth = schedule.reduce((sum, s) => sum + s.price, 0) + 320;
+  const pendingCount = requests.filter((r) => requestStatus[r.id] === "pending").length;
+
+  const handleAccept = (s: Session) => {
+    setRequestStatus((m) => ({ ...m, [s.id]: "accepted" }));
+    // Move into schedule
+    setSchedule((list) => [...list, { ...s, status: "upcoming" }]);
+    toast.success(`Accepted ${s.menteeName}'s request — added to your schedule.`);
+  };
+
+  const handleDecline = (s: Session) => {
+    setRequestStatus((m) => ({ ...m, [s.id]: "declined" }));
+    toast.info(`Declined ${s.menteeName}'s request.`);
+  };
+
+  const handleReschedule = (updated: { date: string; time: string; durationMinutes: number }) => {
+    if (!rescheduling) return;
+    setSchedule((list) =>
+      list.map((s) => (s.id === rescheduling.id ? { ...s, ...updated } : s)),
+    );
+    toast.success("Session rescheduled. Mentee has been notified.");
+    setRescheduling(null);
+  };
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -42,35 +93,46 @@ function MentorDashboard() {
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <StatCard label="This week" value={String(MOCK_MENTOR_SCHEDULE.length)} sub="scheduled sessions" />
+        <StatCard label="This week" value={String(schedule.length)} sub="scheduled sessions" />
         <StatCard
           label="Pending requests"
-          value={String(MOCK_MENTOR_REQUESTS.length)}
+          value={String(pendingCount)}
           sub="awaiting your reply"
         />
         <StatCard label="Earnings" value={`$${earningsThisMonth}`} sub="this month" />
       </div>
 
       <Tabs defaultValue="schedule">
-        <TabsList>
-          <TabsTrigger value="schedule">Schedule ({MOCK_MENTOR_SCHEDULE.length})</TabsTrigger>
-          <TabsTrigger value="requests">Requests ({MOCK_MENTOR_REQUESTS.length})</TabsTrigger>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="schedule">Schedule ({schedule.length})</TabsTrigger>
+          <TabsTrigger value="requests">Requests ({requests.length})</TabsTrigger>
           <TabsTrigger value="earnings">Earnings</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
+          <TabsTrigger value="availability">Availability</TabsTrigger>
         </TabsList>
 
         <TabsContent value="schedule" className="mt-6">
           <div className="grid gap-4">
-            {MOCK_MENTOR_SCHEDULE.map((s) => (
-              <ScheduleCard key={s.id} session={s} />
+            {schedule.map((s) => (
+              <ScheduleCard
+                key={s.id}
+                session={s}
+                onReschedule={() => setRescheduling(s)}
+              />
             ))}
           </div>
         </TabsContent>
 
         <TabsContent value="requests" className="mt-6">
           <div className="grid gap-4">
-            {MOCK_MENTOR_REQUESTS.map((s) => (
-              <RequestCard key={s.id} session={s} />
+            {requests.map((s) => (
+              <RequestCard
+                key={s.id}
+                session={s}
+                status={requestStatus[s.id] ?? "pending"}
+                onAccept={() => handleAccept(s)}
+                onDecline={() => handleDecline(s)}
+              />
             ))}
           </div>
         </TabsContent>
@@ -84,7 +146,7 @@ function MentorDashboard() {
               ${earningsThisMonth}
             </p>
             <div className="mt-6 space-y-3 border-t pt-4">
-              {[...MOCK_MENTOR_SCHEDULE].map((s) => (
+              {schedule.map((s) => (
                 <div key={s.id} className="flex items-center justify-between text-sm">
                   <div>
                     <p className="font-medium">{s.topic}</p>
@@ -102,7 +164,17 @@ function MentorDashboard() {
         <TabsContent value="pricing" className="mt-6">
           <PricingCard />
         </TabsContent>
+
+        <TabsContent value="availability" className="mt-6">
+          <AvailabilityCard />
+        </TabsContent>
       </Tabs>
+
+      <RescheduleDialog
+        session={rescheduling}
+        onClose={() => setRescheduling(null)}
+        onSave={handleReschedule}
+      />
     </div>
   );
 }
@@ -225,10 +297,240 @@ function PriceRow({
   );
 }
 
-function ScheduleCard({ session }: { session: Session }) {
+interface AvailabilityWindow {
+  id: string;
+  day: string; // weekday name
+  enabled: boolean;
+  startTime: string; // HH:mm
+  durationMinutes: number; // 30..1440
+}
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function defaultAvailability(): AvailabilityWindow[] {
+  return WEEKDAYS.map((d, i) => ({
+    id: `${d}-${i}`,
+    day: d,
+    enabled: d !== "Sat" && d !== "Sun",
+    startTime: "10:00",
+    durationMinutes: 60,
+  }));
+}
+
+function formatDuration(min: number) {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h} hr` : `${h} hr ${m} min`;
+}
+
+function AvailabilityCard() {
+  const [windows, setWindows] = useState<AvailabilityWindow[]>(defaultAvailability());
+
+  const update = (id: string, patch: Partial<AvailabilityWindow>) =>
+    setWindows((list) => list.map((w) => (w.id === id ? { ...w, ...patch } : w)));
+
+  const add = () =>
+    setWindows((list) => [
+      ...list,
+      {
+        id: `slot-${Date.now()}`,
+        day: "Mon",
+        enabled: true,
+        startTime: "14:00",
+        durationMinutes: 60,
+      },
+    ]);
+
+  const remove = (id: string) =>
+    setWindows((list) => list.filter((w) => w.id !== id));
+
+  return (
+    <Card className="p-6">
+      <div className="mb-2 flex items-center gap-2">
+        <CalendarDays className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">Weekly availability</h2>
+      </div>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Choose the days and times you're open for mentorship. Sessions can be anywhere from
+        30 minutes to 24 hours long.
+      </p>
+
+      <div className="space-y-3">
+        {windows.map((w) => (
+          <div
+            key={w.id}
+            className="grid gap-3 rounded-lg border p-4 sm:grid-cols-[auto_1fr_1fr_auto] sm:items-center"
+          >
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={w.enabled}
+                onCheckedChange={(v) => update(w.id, { enabled: v })}
+              />
+              <select
+                value={w.day}
+                onChange={(e) => update(w.id, { day: e.target.value })}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              >
+                {WEEKDAYS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Start time</Label>
+              <Input
+                type="time"
+                value={w.startTime}
+                disabled={!w.enabled}
+                onChange={(e) => update(w.id, { startTime: e.target.value })}
+                className="h-9"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Duration</Label>
+                <span className="text-xs font-medium">{formatDuration(w.durationMinutes)}</span>
+              </div>
+              <Slider
+                value={[w.durationMinutes]}
+                min={30}
+                max={1440}
+                step={15}
+                disabled={!w.enabled}
+                onValueChange={(v) => update(w.id, { durationMinutes: v[0] })}
+              />
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => remove(w.id)}
+              aria-label="Remove window"
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 flex justify-between gap-2">
+        <Button variant="outline" onClick={add}>
+          <Plus className="mr-1 h-4 w-4" /> Add window
+        </Button>
+        <Button
+          className="bg-gradient-primary text-primary-foreground hover:opacity-90"
+          onClick={() => toast.success("Availability saved.")}
+        >
+          Save availability
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function RescheduleDialog({
+  session,
+  onClose,
+  onSave,
+}: {
+  session: Session | null;
+  onClose: () => void;
+  onSave: (v: { date: string; time: string; durationMinutes: number }) => void;
+}) {
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [duration, setDuration] = useState(60);
+
+  useEffect(() => {
+    if (session) {
+      setDate("");
+      setTime("");
+      setDuration(session.durationMinutes);
+    }
+  }, [session]);
+
+  return (
+    <Dialog open={!!session} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Reschedule session</DialogTitle>
+        </DialogHeader>
+        {session && (
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              <p className="font-semibold">{session.menteeName}</p>
+              <p className="text-xs text-muted-foreground">{session.topic}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Current: {session.date} · {session.time} · {session.durationMinutes}m
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">New date</Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">New time</Label>
+                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Duration</Label>
+                <span className="text-xs font-medium">{formatDuration(duration)}</span>
+              </div>
+              <Slider
+                value={[duration]}
+                min={30}
+                max={1440}
+                step={15}
+                onValueChange={(v) => setDuration(v[0])}
+              />
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!date || !time}
+            className="bg-gradient-primary text-primary-foreground hover:opacity-90"
+            onClick={() => {
+              const d = new Date(date + "T00:00:00");
+              const formatted = d.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              });
+              onSave({ date: formatted, time, durationMinutes: duration });
+            }}
+          >
+            Save changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ScheduleCard({
+  session,
+  onReschedule,
+}: {
+  session: Session;
+  onReschedule: () => void;
+}) {
   const menteeId = session.menteeName ? MENTEE_NAME_TO_ID[session.menteeName] : undefined;
   const mentee = menteeId ? getMentee(menteeId) : undefined;
-  // Mentor has booked this mentee, so they're allowed to view even if private.
   const canView = !!mentee;
   return (
     <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
@@ -269,15 +571,25 @@ function ScheduleCard({ session }: { session: Session }) {
             <Lock className="mr-1 h-3.5 w-3.5" /> View Profile
           </Button>
         )}
-        <Button size="sm" variant="outline">
-          Reschedule
+        <Button size="sm" variant="outline" onClick={onReschedule}>
+          <CalendarClock className="mr-1 h-3.5 w-3.5" /> Reschedule
         </Button>
       </div>
     </Card>
   );
 }
 
-function RequestCard({ session }: { session: Session }) {
+function RequestCard({
+  session,
+  status,
+  onAccept,
+  onDecline,
+}: {
+  session: Session;
+  status: RequestStatus;
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
   return (
     <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
       <img
@@ -286,22 +598,48 @@ function RequestCard({ session }: { session: Session }) {
         className="h-12 w-12 rounded-full border bg-muted"
       />
       <div className="min-w-0 flex-1">
-        <p className="font-semibold">{session.menteeName}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-semibold">{session.menteeName}</p>
+          {status === "pending" && (
+            <Badge variant="secondary" className="gap-1">
+              <Clock className="h-3 w-3" /> Pending
+            </Badge>
+          )}
+          {status === "accepted" && (
+            <Badge className="gap-1 bg-green-600 text-white hover:bg-green-600">
+              <Check className="h-3 w-3" /> Accepted
+            </Badge>
+          )}
+          {status === "declined" && (
+            <Badge variant="outline" className="gap-1 border-destructive text-destructive">
+              <X className="h-3 w-3" /> Declined
+            </Badge>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">{session.topic}</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Requested: {session.date} · {session.time} · {session.durationMinutes}m · ${session.price}
         </p>
       </div>
       <div className="flex gap-2">
-        <Button size="sm" variant="outline">
-          <X className="mr-1 h-3.5 w-3.5" /> Decline
-        </Button>
-        <Button
-          size="sm"
-          className="bg-gradient-primary text-primary-foreground hover:opacity-90"
-        >
-          <Check className="mr-1 h-3.5 w-3.5" /> Accept
-        </Button>
+        {status === "pending" ? (
+          <>
+            <Button size="sm" variant="outline" onClick={onDecline}>
+              <X className="mr-1 h-3.5 w-3.5" /> Decline
+            </Button>
+            <Button
+              size="sm"
+              className="bg-gradient-primary text-primary-foreground hover:opacity-90"
+              onClick={onAccept}
+            >
+              <Check className="mr-1 h-3.5 w-3.5" /> Accept
+            </Button>
+          </>
+        ) : (
+          <Button size="sm" variant="outline" disabled>
+            {status === "accepted" ? "Accepted" : "Declined"}
+          </Button>
+        )}
       </div>
     </Card>
   );
@@ -316,4 +654,3 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub: st
     </Card>
   );
 }
-
