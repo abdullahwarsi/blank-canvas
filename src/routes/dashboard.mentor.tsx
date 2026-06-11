@@ -56,6 +56,7 @@ function MentorDashboard() {
           <TabsTrigger value="schedule">Schedule ({MOCK_MENTOR_SCHEDULE.length})</TabsTrigger>
           <TabsTrigger value="requests">Requests ({MOCK_MENTOR_REQUESTS.length})</TabsTrigger>
           <TabsTrigger value="earnings">Earnings</TabsTrigger>
+          <TabsTrigger value="pricing">Pricing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="schedule" className="mt-6">
