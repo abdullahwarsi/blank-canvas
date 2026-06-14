@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@/lib/router-compat";
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, Clock, Video, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";

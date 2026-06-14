@@ -1,13 +1,15 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
 import { useState } from "react";
 import { Sparkles, GraduationCap, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { useAuth, type UserRole } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import type { UserRole } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/register")({
   head: () => ({ meta: [{ title: "Sign up — GuideMe" }] }),
@@ -17,27 +19,43 @@ export const Route = createFileRoute("/register")({
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.6 4-5.5 4-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.3 14.6 2.3 12 2.3 6.7 2.3 2.4 6.6 2.4 12s4.3 9.7 9.6 9.7c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.7H12z"/>
+      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.6 4-5.5 4-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.3 14.6 2.3 12 2.3 6.7 2.3 2.4 6.6 2.4 12s4.3 9.7 9.6 9.7c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.7H12z" />
     </svg>
   );
 }
 
 function RegisterPage() {
-  const { login } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState<UserRole>("mentee");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login({ id: "demo", name: form.name, email: form.email, role });
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: { full_name: form.name, role },
+      },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Account created! Check your email to verify.");
     navigate({ to: role === "mentor" ? "/dashboard/mentor" : "/dashboard/mentee" });
   };
 
-  const handleGoogle = () => {
-    toast.info("Google sign-in placeholder", {
-      description: "Wire this to supabase.auth.signInWithOAuth('google') locally.",
+  const handleGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
     });
+    if (error) toast.error(error.message);
   };
 
   return (
@@ -51,12 +69,7 @@ function RegisterPage() {
           <p className="text-sm text-muted-foreground">Join GuideMe in under a minute.</p>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleGoogle}
-          className="w-full gap-2"
-        >
+        <Button type="button" variant="outline" onClick={handleGoogle} className="w-full gap-2">
           <GoogleIcon className="h-4 w-4" />
           Continue with Google
         </Button>
@@ -109,16 +122,20 @@ function RegisterPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               required
+              minLength={8}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
           </div>
-          <Button type="submit" className="w-full bg-gradient-primary text-primary-foreground hover:opacity-90">
-            Create account
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-primary text-primary-foreground hover:opacity-90"
+          >
+            {loading ? "Creating account…" : "Create account"}
           </Button>
         </form>
 
