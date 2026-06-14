@@ -6,7 +6,6 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({ meta: [{ title: "Reset password — GuideMe" }] }),
@@ -31,12 +30,10 @@ function ResetPasswordPage() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    // TODO: Replace with a real call to your auth provider
+    //   e.g. supabase.auth.updateUser({ password })
+    await new Promise((r) => setTimeout(r, 300));
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
     setDone(true);
     setTimeout(() => navigate({ to: "/login" }), 1500);
   };
@@ -101,4 +98,3 @@ function ResetPasswordPage() {
     </div>
   );
 }
-

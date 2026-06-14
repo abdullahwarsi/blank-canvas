@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Log in — GuideMe" }] }),
@@ -25,6 +25,7 @@ function GoogleIcon({ className }: { className?: string }) {
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,22 +33,24 @@ function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // TODO: Replace this block with a real call to your auth provider
+    //   e.g. supabase.auth.signInWithPassword({ email, password })
+    // and pass the returned user to login().
+    await new Promise((r) => setTimeout(r, 300));
+    login({
+      id: "local-user",
+      name: email.split("@")[0] || "User",
+      email,
+      role: "mentee",
+    });
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
     toast.success("Welcome back!");
     navigate({ to: "/dashboard/mentee" });
   };
 
-  const handleGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) toast.error(error.message);
+  const handleGoogle = () => {
+    // TODO: Wire your provider's OAuth flow here.
+    toast.info("Social login is not wired up yet.");
   };
 
   return (

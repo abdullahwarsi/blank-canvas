@@ -1,6 +1,14 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Session } from "@supabase/supabase-js";
+
+/**
+ * Simple client-side auth context.
+ *
+ * No backend is wired up. The current user is persisted in localStorage so the
+ * UI behaves as if someone is logged in. To connect this to Supabase (or any
+ * other backend) later, replace the body of `login`, `logout`, and the initial
+ * load effect below with real API calls. The shape of `AuthUser` and the
+ * context value are what the rest of the app depends on — keep them stable.
+ */
 
 export type UserRole = "mentee" | "mentor" | "admin";
 
@@ -17,45 +25,37 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   loading: boolean;
   login: (user: AuthUser) => void;
-  logout: () => Promise<void>;
+  logout: () => void;
   updateAvatar: (avatar: string) => void;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const STORAGE_KEY = "guideme.auth.user";
 
-function userFromSession(session: Session | null): AuthUser | null {
-  if (!session?.user) return null;
-  const meta = (session.user.user_metadata ?? {}) as Record<string, unknown>;
-  return {
-    id: session.user.id,
-    email: session.user.email ?? "",
-    name:
-      (meta.full_name as string) ||
-      (meta.name as string) ||
-      session.user.email?.split("@")[0] ||
-      "User",
-    role: ((meta.role as UserRole) ?? "mentee") as UserRole,
-    avatar: (meta.avatar_url as string) || (meta.avatar as string) || undefined,
-  };
-}
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listener first so we don't miss events that fire between mount and getSession resolving.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(userFromSession(session));
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(userFromSession(data.session));
-      setLoading(false);
-    });
-    return () => {
-      sub.subscription.unsubscribe();
-    };
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setUser(JSON.parse(raw) as AuthUser);
+    } catch {
+      // ignore parse errors
+    }
+    setLoading(false);
   }, []);
+
+  const persist = (next: AuthUser | null) => {
+    setUser(next);
+    try {
+      if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -63,12 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         loading,
-        login: setUser,
-        logout: async () => {
-          await supabase.auth.signOut();
-          setUser(null);
+        login: persist,
+        logout: () => persist(null),
+        updateAvatar: (avatar) => {
+          if (!user) return;
+          persist({ ...user, avatar });
         },
-        updateAvatar: (avatar) => setUser((u) => (u ? { ...u, avatar } : u)),
       }}
     >
       {children}
