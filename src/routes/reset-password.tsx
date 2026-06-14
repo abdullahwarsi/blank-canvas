@@ -2,10 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@/lib/router-compat";
 import { useState } from "react";
 import { KeyRound, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({ meta: [{ title: "Reset password — GuideMe" }] }),
@@ -17,8 +18,9 @@ function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
       toast.error("Password must be at least 8 characters.");
@@ -28,7 +30,13 @@ function ResetPasswordPage() {
       toast.error("Passwords do not match.");
       return;
     }
-    // Placeholder — wire to supabase.auth.updateUser({ password }) on your machine.
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setDone(true);
     setTimeout(() => navigate({ to: "/login" }), 1500);
   };
@@ -57,9 +65,8 @@ function ResetPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">New password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -68,16 +75,19 @@ function ResetPasswordPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirm password</Label>
-              <Input
+              <PasswordInput
                 id="confirm"
-                type="password"
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full bg-gradient-primary text-primary-foreground hover:opacity-90">
-              Update password
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-primary text-primary-foreground hover:opacity-90"
+            >
+              {loading ? "Updating…" : "Update password"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
               Remembered it?{" "}
@@ -91,3 +101,4 @@ function ResetPasswordPage() {
     </div>
   );
 }
+
