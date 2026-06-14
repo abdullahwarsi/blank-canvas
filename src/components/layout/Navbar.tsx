@@ -1,4 +1,4 @@
-import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@/lib/router-compat";
 import { Moon, Sun, Sparkles, Menu, X, Bell, LayoutDashboard, Settings as SettingsIcon, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";

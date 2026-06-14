@@ -146,9 +146,12 @@ export interface RouteLike {
   useRouteContext: () => Record<string, unknown>;
 }
 
-function wrapComponent(cfg: { component?: React.ComponentType<unknown>; head?: () => HeadResult }) {
-  const Inner = cfg.component ?? (() => null);
-  const Wrapped: React.FC = () => {
+function wrapComponent(cfg: {
+  component?: React.ComponentType<unknown>;
+  head?: () => HeadResult;
+}): React.ComponentType<unknown> {
+  const Inner: React.ComponentType<unknown> = cfg.component ?? (() => null);
+  const Wrapped: React.ComponentType<unknown> = () => {
     React.useEffect(() => {
       try {
         applyHead(cfg.head?.());
@@ -158,7 +161,8 @@ function wrapComponent(cfg: { component?: React.ComponentType<unknown>; head?: (
     }, []);
     return <Inner />;
   };
-  Wrapped.displayName = Inner.displayName || Inner.name || "RouteComponent";
+  (Wrapped as { displayName?: string }).displayName =
+    (Inner as { displayName?: string }).displayName || Inner.name || "RouteComponent";
   return Wrapped;
 }
 

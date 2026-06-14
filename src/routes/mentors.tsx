@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@/lib/router-compat";
 import { useMemo, useState, useEffect } from "react";
 import { Search, Star, Users, BadgeCheck } from "lucide-react";
 import { z } from "zod";
