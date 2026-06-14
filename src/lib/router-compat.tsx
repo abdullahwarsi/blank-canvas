@@ -105,10 +105,10 @@ export const Navigate = RRNavigate;
 export const HeadContent = () => null;
 export const Scripts = () => null;
 
-type MetaTag = Record<string, string>;
+type MetaTag = Record<string, string | undefined>;
 interface HeadResult {
   meta?: MetaTag[];
-  links?: Array<Record<string, string>>;
+  links?: Array<Record<string, string | undefined>>;
 }
 
 function applyHead(result: HeadResult | undefined) {
