@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import type { UserRole } from "@/contexts/AuthContext";
+import { useAuth, type UserRole } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/register")({
   head: () => ({ meta: [{ title: "Sign up — GuideMe" }] }),
@@ -26,6 +25,7 @@ function GoogleIcon({ className }: { className?: string }) {
 
 function RegisterPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [role, setRole] = useState<UserRole>("mentee");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -33,29 +33,23 @@ function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    // TODO: Replace this block with a real call to your auth provider
+    //   e.g. supabase.auth.signUp({ email, password, options: { data: { full_name, role } } })
+    await new Promise((r) => setTimeout(r, 300));
+    login({
+      id: "local-user",
+      name: form.name || form.email.split("@")[0] || "User",
       email: form.email,
-      password: form.password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { full_name: form.name, role },
-      },
+      role,
     });
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Account created! Check your email to verify.");
+    toast.success("Account created!");
     navigate({ to: role === "mentor" ? "/dashboard/mentor" : "/dashboard/mentee" });
   };
 
-  const handleGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) toast.error(error.message);
+  const handleGoogle = () => {
+    // TODO: Wire your provider's OAuth flow here.
+    toast.info("Social login is not wired up yet.");
   };
 
   return (

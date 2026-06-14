@@ -19,16 +19,10 @@ function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { toast } = await import("sonner");
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    // TODO: Replace with a real call to your auth provider
+    //   e.g. supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    await new Promise((r) => setTimeout(r, 300));
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
     setSent(true);
   };
 
@@ -73,8 +67,12 @@ function ForgotPasswordPage() {
                 placeholder="you@example.com"
               />
             </div>
-            <Button type="submit" className="w-full bg-gradient-primary text-primary-foreground hover:opacity-90">
-              Send reset link
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-primary text-primary-foreground hover:opacity-90"
+            >
+              {loading ? "Sending…" : "Send reset link"}
             </Button>
             <Button asChild variant="ghost" className="w-full">
               <Link to="/login">
